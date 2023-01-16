@@ -54,7 +54,7 @@ func main() {
 
 	// get total rekening
 	page.MustElement("#myaccounts > table").MustClick()
-	page.MustElement("body > div.submenu.active > div:nth-child(2) > a").MustClick()
+	page.MustElement("body > div.submenu.active > div.item.active > a").MustClick().MustWaitLoad().MustScreenshot("total_saldo.png")
 	noRek := page.MustElement("#Any_0 > td:nth-child(1)")
 	jenisProduk := page.MustElement("#Any_0 > td:nth-child(2)")
 	nama := page.MustElement("#Any_0 > td:nth-child(3)")
