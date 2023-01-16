@@ -44,8 +44,8 @@ func main() {
 
 	// isi form login
 	page.MustElement("#loginForm > div.validation > input[type=text]").MustInput(text)
-	page.MustElement("#loginForm > input[type=text]:nth-child(5)").MustInput("rizkypramudya3")
-	page.MustElement("#loginForm > input[type=password]:nth-child(8)").MustInput("Pramudya3")
+	page.MustElement("#loginForm > input[type=text]:nth-child(5)").MustInput("")
+	page.MustElement("#loginForm > input[type=password]:nth-child(8)").MustInput("")
 	page.MustElement("#loginForm > button").MustClick()
 
 	time.Sleep(time.Hour)
