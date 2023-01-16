@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-rod/rod"
+	"github.com/go-rod/rod/lib/proto"
 	"github.com/go-rod/stealth"
 	"github.com/otiai10/gosseract/v2"
 )
@@ -32,6 +33,9 @@ func main() {
 	defer client.Close()
 
 	page.MustElement("#simple_img > img").MustWaitLoad().MustScreenshot("captcha.png")
+	img, _ := page.MustElement("#simple_img > img").MustWaitLoad().Screenshot(proto.PageCaptureScreenshotFormatPng, 400)
+	// client.SetImage("captcha.png")
+	client.SetImageFromBytes(img)
 	text, err := client.Text()
 	if err != nil {
 		log.Fatal(err)
