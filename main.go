@@ -25,17 +25,21 @@ func main() {
 	defer browser.MustClose()
 
 	page := stealth.MustPage(browser)
-	// page := browser.MustPage("https://ib.bri.co.id/ib-bri/login/").MustWindowNormal()
-	page.MustNavigate("https://ib.bri.co.id/")
+	page.MustNavigate("https://ib.bri.co.id/").MustWindowNormal()
 
 	// get captcha text
 	client := gosseract.NewClient()
 	defer client.Close()
 
-	page.MustElement("#simple_img > img").MustWaitLoad().MustScreenshot("captcha.png")
-	img, _ := page.MustElement("#simple_img > img").MustWaitLoad().Screenshot(proto.PageCaptureScreenshotFormatPng, 400)
+	img, err := page.MustElement(".alignimg").MustWaitLoad().Screenshot(proto.PageCaptureScreenshotFormatPng, 1000)
+	if err != nil {
+		log.Fatal(err)
+	}
 	// client.SetImage("captcha.png")
-	client.SetImageFromBytes(img)
+	err = client.SetImageFromBytes(img)
+	if err != nil {
+		log.Fatalln("error getting captcha.png ", err)
+	}
 	text, err := client.Text()
 	if err != nil {
 		log.Fatal(err)
