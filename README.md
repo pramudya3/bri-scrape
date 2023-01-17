@@ -1,5 +1,5 @@
-#BRI-Scrape
-
+_**#bri-scrape
+**_
 
 adalah project percobaan untuk mendapatkan total saldo
 Dengan menggunakan bahasa Golang dibantu dengan library go-rod dan gosseract.
