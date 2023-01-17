@@ -8,5 +8,3 @@ Dan sebelum captchanya diperoleh, sudah diblokir oleh system keamanan BRI. Ini b
 
 Terdapat 2 browser pada project ini, yaitu chromium (chromium.go) dan chrome (main.go)
 Pastikan anda sudah menginstall 2 browser ini, dan silahkan input manual lokasi browsernya di variabel "u"
-
-Silahkan jika ada yang mau mengembangkan project ini.
