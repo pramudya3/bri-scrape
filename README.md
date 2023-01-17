@@ -12,4 +12,4 @@ Untuk rate percobaan solver captcha kemungkinan berhasil: 20/2 atau bahkan 20/1.
   
     https://go-rod.github.io/
     
-    github.com/otiai10/gosseract
+    https://github.com/otiai10/gosseract
