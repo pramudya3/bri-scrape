@@ -8,17 +8,13 @@ import (
 	"time"
 
 	"github.com/go-rod/rod"
+	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod/lib/proto"
-	"github.com/go-rod/stealth"
 	"github.com/joho/godotenv"
 	"github.com/otiai10/gosseract/v2"
 )
 
-const (
-	LoginURL = "https://ib.bri.co.id/"
-)
-
-type Saldo struct {
+type TotalSaldo struct {
 	NoRek       string
 	JenisProduk string
 	Nama        string
@@ -26,7 +22,7 @@ type Saldo struct {
 	Saldo       string
 }
 
-func getCaptcha(img []byte) string {
+func captcha2Text(img []byte) string {
 	client := gosseract.NewClient()
 	err := client.SetImageFromBytes(img)
 	if err != nil {
@@ -41,7 +37,7 @@ func getCaptcha(img []byte) string {
 }
 
 func main() {
-	err := godotenv.Load(".env")
+	err := godotenv.Load()
 	if err != nil {
 		log.Fatal(".env file couldn't be loaded")
 	}
@@ -57,23 +53,20 @@ func main() {
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
 
-	// launch default browser (chrome)
-	browser := rod.New().Timeout(time.Minute).MustConnect()
-	defer browser.MustClose()
-	page := stealth.MustPage(browser).MustNavigate(LoginURL).MustWindowNormal()
+	// launch chromium
+	u := launcher.New().Bin("/usr/bin/chromium-browser")
+	page := rod.New().ControlURL(u.MustLaunch()).MustConnect().NoDefaultDevice().MustPage("https://ib.bri.co.id/ib-bri/").MustWindowNormal()
 
-	// launch gosseract (parse image to text)
+	// launch gosseract
 	client := gosseract.NewClient()
 	defer client.Close()
 
-	// get captcha image
-	img, err := page.MustElement(".alignimg").MustWaitLoad().Screenshot(proto.PageCaptureScreenshotFormatPng, 1050)
+	// get image captcha
+	img, err := page.MustElement("#simple_img").MustWaitLoad().Screenshot(proto.PageCaptureScreenshotFormatPng, 1025)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// parse image to text
-	text := getCaptcha(img)
+	text := captcha2Text(img)
 
 	// fill login form
 	page.MustElement("#loginForm > div.validation > input[type=text]").MustInput(text)
@@ -85,9 +78,9 @@ func main() {
 	header := []string{"No Rekening", "Jenis Produk", "Nama", "Mata Uang", "Saldo"}
 	writer.Write(header)
 
-	// get total saldo
+	// get total
 	page.MustElement("#myaccounts").MustClick()
-	page.MustElement("body > div.submenu.active > div:nth-child(2) > a").MustClick().MustWaitLoad().MustScreenshot("get_saldo.png")
+	page.MustElement("body > div.submenu.active > div:nth-child(2) > a").MustClick().MustWaitLoad().MustScreenshot("total_saldo.png")
 	noRek := page.MustElement("#Any_0 > td:nth-child(1)")
 	jenisProduk := page.MustElement("#Any_0 > td:nth-child(2)")
 	nama := page.MustElement("#Any_0 > td:nth-child(3)")
@@ -95,7 +88,7 @@ func main() {
 	saldo := page.MustElement("#Any_0 > td:nth-child(5)")
 
 	// input data to export file
-	res := Saldo{}
+	res := TotalSaldo{}
 	res.NoRek = noRek.MustText()
 	res.JenisProduk = jenisProduk.MustText()
 	res.Nama = nama.MustText()
@@ -104,7 +97,7 @@ func main() {
 	row := []string{res.NoRek, res.JenisProduk, res.Nama, res.MataUang, res.Saldo}
 	writer.Write(row)
 
-	// print total saldo
+	// print total
 	fmt.Printf("Nomor Rekening : %s\n\nJenisProduk : %s\n\nNama : %s\n\nMata Uang : %s\n\nSaldo : %s\n\n", noRek.MustText(), jenisProduk.MustText(), nama.MustText(), mataUang.MustText(), saldo.MustText())
 
 	time.Sleep(time.Hour)
