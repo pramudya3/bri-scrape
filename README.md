@@ -1,7 +1,5 @@
-# bri-scrape
-
-BRI-Scrape
-adalah percobaan untuk mendapatkan total saldo maupun mutasi 
+#BRI-Scrape
+adalah project percobaan untuk mendapatkan total saldo
 Dengan menggunakan bahasa Golang dibantu dengan library go-rod dan gosseract.
 Untuk rate percobaan solver captcha kemungkinan berhasil: 20/2 atau bahkan 20/1.
 Dan sebelum captchanya diperoleh, sudah diblokir oleh system keamanan BRI. Ini bisa ditunggu sekitar 20 menit an, atau mengganti browser.
