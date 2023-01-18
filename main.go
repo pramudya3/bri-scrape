@@ -15,8 +15,8 @@ import (
 
 const (
 	loginUrl = "https://ib.bri.co.id/ib-bri"
-	username = "rizkypramudya3"
-	password = "Pramudya3"
+	username = ""
+	password = ""
 )
 
 type Saldo struct {
