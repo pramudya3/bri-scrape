@@ -26,7 +26,6 @@ func captcha2Text(captcha []byte) string {
 	if err != nil {
 		log.Fatal("error parse image to text", err)
 	}
-	fmt.Println("captcha text: ", text)
 	return text
 }
 
@@ -49,25 +48,26 @@ func chrome() *rod.Page {
 }
 
 func createFile() *csv.Writer {
-	// write result to export file
-	file, err := os.Create("saldo.csv")
-	if err != nil {
-		log.Fatalln("error create file", err)
-	}
+	file, _ := os.Create("saldo.csv")
 	defer file.Close()
+
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
+
 	return writer
 }
 
 func main() {
 	// Create file
-	writer := createFile()
+	file, _ := os.Create("saldo.csv")
+	defer file.Close()
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
 
-	// Select Browser
-	// page := chromium()
+	// Select Browser :
+	page := chromium()
 	// page := edge()
-	page := chrome()
+	// page := chrome()
 
 	// get captcha image
 	captcha, _ := page.MustElement("#simple_img > img").MustWaitVisible().Screenshot(proto.PageCaptureScreenshotFormatPng, 1500)
@@ -93,6 +93,9 @@ func main() {
 	time.Sleep(3 * time.Second)
 	page.MustScreenshot("total-saldo.png")
 
+	header := []string{"Saldo Tabungan :"}
+	writer.Write(header)
+
 	// get tabel saldo tabungan
 	fr2 := page.MustElement("#content").MustFrame()
 	noRek := fr2.MustElement("#Any_0 > td:nth-child(1)").MustText()
@@ -101,15 +104,21 @@ func main() {
 	mataUang := fr2.MustElement("#Any_0 > td:nth-child(4)").MustText()
 	saldo := fr2.MustElement("#Any_0 > td:nth-child(5)").MustText()
 
-	fmt.Printf("Nomor Rekening : %s\n\nJenisProduk : %s\n\nNama : %s\n\nMata Uang : %s\n\nSaldo : %s\n\n", noRek, jenisProduk, nama, mataUang, saldo)
+	fmt.Printf("\nNomor Rekening : %s\n\nJenis Produk : %s\n\nNama : %s\n\nMata Uang : %s\n\nSaldo : %s\n\n", noRek, jenisProduk, nama, mataUang, saldo)
 
 	// export data to file
-	header := []string{"Saldo Tabungan\n\n"}
-	writer.Write(header)
-	data := []string{"\n Nomor Rekening : " + noRek + "\n\n", "Jenis Produk : " + jenisProduk + "\n\n", "Nama : " + nama + "\n\n", "Mata Uang" + mataUang + "\n\n", "Saldo : " + saldo + "\n"}
-	writer.Write(data)
+	data := [][]string{
+		{"Nomor Rekening : " + noRek},
+		{"Jenis Produk : " + jenisProduk},
+		{"Nama : " + nama},
+		{"Mata Uang :" + mataUang},
+		{"Saldo : " + saldo},
+	}
+	for _, row := range data {
+		_ = writer.Write(row)
+	}
 
-	time.Sleep(10 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	// logout
 	page.MustElement("#main-page > div.headerwrap > div > div.uppernav.col-1-2 > span:nth-child(1) > a:nth-child(4)").MustClick()
