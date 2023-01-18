@@ -19,14 +19,6 @@ const (
 	password = ""
 )
 
-type Saldo struct {
-	NoRek       string
-	JenisProduk string
-	Nama        string
-	MataUang    string
-	Saldo       string
-}
-
 func captcha2Text(captcha []byte) string {
 	client := gosseract.NewClient()
 	client.SetImageFromBytes(captcha)
@@ -84,10 +76,8 @@ func main() {
 	text := captcha2Text(captcha)
 
 	// login
-	if len(text) <= 5 {
+	if len(text) > 4 {
 		page.MustElement("#loginForm > div.validation > input[type=text]").MustInput(text[1:5])
-	} else if len(text) > 5 {
-		page.MustElement("#loginForm > div.validation > input[type=text]").MustInput(text[0:4])
 	}
 	page.MustElement("#loginForm > div.validation > input[type=text]").MustInput(text).WaitVisible()
 	page.MustElement("#loginForm > input[type=text]:nth-child(5)").MustInput(username).WaitVisible()
@@ -114,9 +104,9 @@ func main() {
 	fmt.Printf("Nomor Rekening : %s\n\nJenisProduk : %s\n\nNama : %s\n\nMata Uang : %s\n\nSaldo : %s\n\n", noRek, jenisProduk, nama, mataUang, saldo)
 
 	// export data to file
-	header := []string{"No Rekening ", " Jenis Produk ", " Nama ", " Mata Uang ", " Saldo"}
+	header := []string{"Saldo Tabungan\n\n"}
 	writer.Write(header)
-	data := []string{noRek, jenisProduk, nama, mataUang, saldo}
+	data := []string{"\n Nomor Rekening : " + noRek + "\n\n", "Jenis Produk : " + jenisProduk + "\n\n", "Nama : " + nama + "\n\n", "Mata Uang" + mataUang + "\n\n", "Saldo : " + saldo + "\n"}
 	writer.Write(data)
 
 	time.Sleep(10 * time.Second)
