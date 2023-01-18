@@ -1,7 +1,7 @@
 #bri-scrape
 
 
-adalah project percobaan untuk mendapatkan total saldo.
+adalah project untuk mendapatkan total saldo dari Bank BRI.
 Dengan menggunakan bahasa Golang dibantu dengan library go-rod dan gosseract.
 Untuk rate percobaan solver captcha kemungkinan berhasil: 20/2 dan mungkin bisa lebih dari atau bahkan bisa kurang, tergantung rejeki.
 
