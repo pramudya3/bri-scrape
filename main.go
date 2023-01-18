@@ -8,14 +8,15 @@ import (
 	"time"
 
 	"github.com/go-rod/rod"
+	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod/lib/proto"
-	"github.com/go-rod/stealth"
-	"github.com/joho/godotenv"
 	"github.com/otiai10/gosseract/v2"
 )
 
 const (
-	LoginURL = "https://ib.bri.co.id/"
+	loginUrl = "https://ib.bri.co.id/ib-bri"
+	username = "rizkypramudya3"
+	password = "Pramudya3"
 )
 
 type Saldo struct {
@@ -26,29 +27,42 @@ type Saldo struct {
 	Saldo       string
 }
 
-func getCaptcha(img []byte) string {
+func captcha2Text(captcha []byte) string {
 	client := gosseract.NewClient()
-	err := client.SetImageFromBytes(img)
-	if err != nil {
-		log.Fatalln("error getting captcha.png ", err)
-	}
+	client.SetImageFromBytes(captcha)
 	text, err := client.Text()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("error parse image to text", err)
 	}
 	fmt.Println("captcha text: ", text)
 	return text
 }
 
-func main() {
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatal(".env file couldn't be loaded")
-	}
-	username := os.Getenv("USERNAME_BRI")
-	password := os.Getenv("PASSWORD_BRI")
+func chromium() *rod.Page {
+	u := launcher.New().Bin("/usr/bin/chromium-browser").MustLaunch()
+	page := rod.New().ControlURL(u).MustConnect().MustPage(loginUrl).MustWindowNormal()
+	return page
+}
 
-	// create export file (saldo.csv)
+func edge() *rod.Page {
+	u := launcher.New().Bin("/usr/bin/microsoft-edge").MustLaunch()
+	page := rod.New().ControlURL(u).MustConnect().MustPage(loginUrl).MustWindowMaximize()
+	return page
+}
+
+func chrome() *rod.Page {
+	browser := rod.New().MustConnect().NoDefaultDevice()
+	page := browser.MustPage(loginUrl).MustWindowNormal()
+	return page
+}
+
+func main() {
+	// browser chromium / chrome / edge
+	page := chromium()
+	// page := edge()
+	// page := chrome()
+
+	// write result to export file
 	file, err := os.Create("saldo.csv")
 	if err != nil {
 		log.Fatalln("error create file", err)
@@ -57,42 +71,42 @@ func main() {
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
 
-	// launch default browser (chrome)
-	browser := rod.New().Timeout(time.Minute).MustConnect()
-	defer browser.MustClose()
-	page := stealth.MustPage(browser).MustNavigate(LoginURL).MustWindowNormal()
-
-	// launch gosseract (parse image to text)
-	client := gosseract.NewClient()
-	defer client.Close()
-
 	// get captcha image
-	img, err := page.MustElement(".alignimg").MustWaitLoad().Screenshot(proto.PageCaptureScreenshotFormatPng, 1050)
-	if err != nil {
-		log.Fatal(err)
-	}
+	captcha, _ := page.MustElement("#simple_img > img").MustWaitVisible().Screenshot(proto.PageCaptureScreenshotFormatPng, 1500)
 
 	// parse image to text
-	text := getCaptcha(img)
+	text := captcha2Text(captcha)
 
-	// fill login form
-	page.MustElement("#loginForm > div.validation > input[type=text]").MustInput(text)
-	page.MustElement("#loginForm > input[type=text]:nth-child(5)").MustInput(username)
-	page.MustElement("#loginForm > input[type=password]:nth-child(8)").MustInput(password)
-	page.MustElement("#loginForm > button").MustClick()
+	// fill form login
+	if len(text) > 4 {
+		page.MustElement("#loginForm > div.validation > input[type=text]").MustInput(text[1:5])
+	}
+	page.MustElement("#loginForm > div.validation > input[type=text]").MustInput(text).WaitVisible()
+	page.MustElement("#loginForm > input[type=text]:nth-child(5)").MustInput(username).WaitVisible()
+	page.MustElement("#loginForm > input[type=password]:nth-child(8)").MustInput(password).WaitVisible()
+	page.MustElement("#loginForm > button").MustClick().WaitInvisible()
 
-	// create header for export file
-	header := []string{"No Rekening", "Jenis Produk", "Nama", "Mata Uang", "Saldo"}
-	writer.Write(header)
+	// homepage after login
+	page.MustElement("#myaccounts").MustClick().WaitVisible()
+
+	// get iframe element
+	fr, err := page.MustElement("#iframemenu").Frame()
+	if err != nil {
+		fmt.Println(err)
+	}
+	fr.MustElement("body > div.submenu.active > div:nth-child(2) > a").MustClick().MustWaitVisible().MustScreenshot("total-saldo.png")
+	fmt.Println("get frame success")
 
 	// get total saldo
-	page.MustElement("#myaccounts").MustClick()
-	page.MustElement("body > div.submenu.active > div:nth-child(2) > a").MustClick().MustWaitLoad().MustScreenshot("get_saldo.png")
-	noRek := page.MustElement("#Any_0 > td:nth-child(1)")
+	noRek := fr.MustElement("#Any_0 > td:nth-child(1)")
 	jenisProduk := page.MustElement("#Any_0 > td:nth-child(2)")
 	nama := page.MustElement("#Any_0 > td:nth-child(3)")
 	mataUang := page.MustElement("#Any_0 > td:nth-child(4)")
 	saldo := page.MustElement("#Any_0 > td:nth-child(5)")
+
+	// create header for export file
+	header := []string{"No Rekening", "Jenis Produk", "Nama", "Mata Uang", "Saldo"}
+	writer.Write(header)
 
 	// input data to export file
 	res := Saldo{}
@@ -104,8 +118,8 @@ func main() {
 	row := []string{res.NoRek, res.JenisProduk, res.Nama, res.MataUang, res.Saldo}
 	writer.Write(row)
 
-	// print total saldo
 	fmt.Printf("Nomor Rekening : %s\n\nJenisProduk : %s\n\nNama : %s\n\nMata Uang : %s\n\nSaldo : %s\n\n", noRek.MustText(), jenisProduk.MustText(), nama.MustText(), mataUang.MustText(), saldo.MustText())
 
+	page.MustWaitIdle()
 	time.Sleep(time.Hour)
 }
