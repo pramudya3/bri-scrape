@@ -40,7 +40,7 @@ func captcha2Text(captcha []byte) string {
 
 func chromium() *rod.Page {
 	u := launcher.New().Bin("/usr/bin/chromium-browser").MustLaunch()
-	page := rod.New().ControlURL(u).MustConnect().MustPage(loginUrl).MustWindowNormal()
+	page := rod.New().ControlURL(u).MustConnect().MustPage(loginUrl).MustWindowMaximize()
 	return page
 }
 
@@ -52,16 +52,11 @@ func edge() *rod.Page {
 
 func chrome() *rod.Page {
 	browser := rod.New().MustConnect().NoDefaultDevice()
-	page := browser.MustPage(loginUrl).MustWindowNormal()
+	page := browser.MustPage(loginUrl).MustWindowMaximize()
 	return page
 }
 
-func main() {
-	// browser chromium / chrome / edge
-	page := chromium()
-	// page := edge()
-	// page := chrome()
-
+func createFile() *csv.Writer {
 	// write result to export file
 	file, err := os.Create("saldo.csv")
 	if err != nil {
@@ -70,6 +65,17 @@ func main() {
 	defer file.Close()
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
+	return writer
+}
+
+func main() {
+	// Create file
+	writer := createFile()
+
+	// Select Browser
+	// page := chromium()
+	// page := edge()
+	page := chrome()
 
 	// get captcha image
 	captcha, _ := page.MustElement("#simple_img > img").MustWaitVisible().Screenshot(proto.PageCaptureScreenshotFormatPng, 1500)
@@ -77,9 +83,11 @@ func main() {
 	// parse image to text
 	text := captcha2Text(captcha)
 
-	// fill form login
-	if len(text) > 4 {
+	// login
+	if len(text) <= 5 {
 		page.MustElement("#loginForm > div.validation > input[type=text]").MustInput(text[1:5])
+	} else if len(text) > 5 {
+		page.MustElement("#loginForm > div.validation > input[type=text]").MustInput(text[0:4])
 	}
 	page.MustElement("#loginForm > div.validation > input[type=text]").MustInput(text).WaitVisible()
 	page.MustElement("#loginForm > input[type=text]:nth-child(5)").MustInput(username).WaitVisible()
@@ -89,37 +97,30 @@ func main() {
 	// homepage after login
 	page.MustElement("#myaccounts").MustClick().WaitVisible()
 
-	// get iframe element
-	fr, err := page.MustElement("#iframemenu").Frame()
-	if err != nil {
-		fmt.Println(err)
-	}
-	fr.MustElement("body > div.submenu.active > div:nth-child(2) > a").MustClick().MustWaitVisible().MustScreenshot("total-saldo.png")
-	fmt.Println("get frame success")
+	// get Saldo Tabungan
+	fr1 := page.MustElement("#iframemenu").MustFrame()
+	fr1.MustElement("body > div.submenu.active > div:nth-child(2) > a").MustClick().MustWaitVisible()
+	time.Sleep(3 * time.Second)
+	page.MustScreenshot("total-saldo.png")
 
-	// get total saldo
-	noRek := fr.MustElement("#Any_0 > td:nth-child(1)")
-	jenisProduk := page.MustElement("#Any_0 > td:nth-child(2)")
-	nama := page.MustElement("#Any_0 > td:nth-child(3)")
-	mataUang := page.MustElement("#Any_0 > td:nth-child(4)")
-	saldo := page.MustElement("#Any_0 > td:nth-child(5)")
+	// get tabel saldo tabungan
+	fr2 := page.MustElement("#content").MustFrame()
+	noRek := fr2.MustElement("#Any_0 > td:nth-child(1)").MustText()
+	jenisProduk := fr2.MustElement("#Any_0 > td:nth-child(2)").MustText()
+	nama := fr2.MustElement("#Any_0 > td:nth-child(3)").MustText()
+	mataUang := fr2.MustElement("#Any_0 > td:nth-child(4)").MustText()
+	saldo := fr2.MustElement("#Any_0 > td:nth-child(5)").MustText()
 
-	// create header for export file
-	header := []string{"No Rekening", "Jenis Produk", "Nama", "Mata Uang", "Saldo"}
+	fmt.Printf("Nomor Rekening : %s\n\nJenisProduk : %s\n\nNama : %s\n\nMata Uang : %s\n\nSaldo : %s\n\n", noRek, jenisProduk, nama, mataUang, saldo)
+
+	// export data to file
+	header := []string{"No Rekening ", " Jenis Produk ", " Nama ", " Mata Uang ", " Saldo"}
 	writer.Write(header)
+	data := []string{noRek, jenisProduk, nama, mataUang, saldo}
+	writer.Write(data)
 
-	// input data to export file
-	res := Saldo{}
-	res.NoRek = noRek.MustText()
-	res.JenisProduk = jenisProduk.MustText()
-	res.Nama = nama.MustText()
-	res.MataUang = mataUang.MustText()
-	res.Saldo = saldo.MustText()
-	row := []string{res.NoRek, res.JenisProduk, res.Nama, res.MataUang, res.Saldo}
-	writer.Write(row)
+	time.Sleep(10 * time.Second)
 
-	fmt.Printf("Nomor Rekening : %s\n\nJenisProduk : %s\n\nNama : %s\n\nMata Uang : %s\n\nSaldo : %s\n\n", noRek.MustText(), jenisProduk.MustText(), nama.MustText(), mataUang.MustText(), saldo.MustText())
-
-	page.MustWaitIdle()
-	time.Sleep(time.Hour)
+	// logout
+	page.MustElement("#main-page > div.headerwrap > div > div.uppernav.col-1-2 > span:nth-child(1) > a:nth-child(4)").MustClick()
 }
