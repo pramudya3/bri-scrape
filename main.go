@@ -47,16 +47,6 @@ func chrome() *rod.Page {
 	return page
 }
 
-func createFile() *csv.Writer {
-	file, _ := os.Create("saldo.csv")
-	defer file.Close()
-
-	writer := csv.NewWriter(file)
-	defer writer.Flush()
-
-	return writer
-}
-
 func main() {
 	// Create file
 	file, _ := os.Create("saldo.csv")
@@ -65,17 +55,17 @@ func main() {
 	defer writer.Flush()
 
 	// Select Browser :
-	page := chromium()
-	// page := edge()
+	// page := chromium()
+	page := edge()
 	// page := chrome()
 
-	// get captcha image
+	// Get captcha image
 	captcha, _ := page.MustElement("#simple_img > img").MustWaitVisible().Screenshot(proto.PageCaptureScreenshotFormatPng, 1500)
 
-	// parse image to text
+	// Parse image to text
 	text := captcha2Text(captcha)
 
-	// login
+	// Login
 	if len(text) > 4 {
 		page.MustElement("#loginForm > div.validation > input[type=text]").MustInput(text[1:5])
 	}
@@ -84,10 +74,10 @@ func main() {
 	page.MustElement("#loginForm > input[type=password]:nth-child(8)").MustInput(password).WaitVisible()
 	page.MustElement("#loginForm > button").MustClick().WaitInvisible()
 
-	// homepage after login
+	// Homepage after login
 	page.MustElement("#myaccounts").MustClick().WaitVisible()
 
-	// get Saldo Tabungan
+	// Get Saldo Tabungan
 	fr1 := page.MustElement("#iframemenu").MustFrame()
 	fr1.MustElement("body > div.submenu.active > div:nth-child(2) > a").MustClick().MustWaitVisible()
 	time.Sleep(3 * time.Second)
@@ -96,7 +86,7 @@ func main() {
 	header := []string{"Saldo Tabungan :"}
 	writer.Write(header)
 
-	// get tabel saldo tabungan
+	// Get tabel saldo tabungan
 	fr2 := page.MustElement("#content").MustFrame()
 	noRek := fr2.MustElement("#Any_0 > td:nth-child(1)").MustText()
 	jenisProduk := fr2.MustElement("#Any_0 > td:nth-child(2)").MustText()
@@ -106,7 +96,7 @@ func main() {
 
 	fmt.Printf("\nNomor Rekening : %s\n\nJenis Produk : %s\n\nNama : %s\n\nMata Uang : %s\n\nSaldo : %s\n\n", noRek, jenisProduk, nama, mataUang, saldo)
 
-	// export data to file
+	// Export data to file
 	data := [][]string{
 		{"Nomor Rekening : " + noRek},
 		{"Jenis Produk : " + jenisProduk},
@@ -118,8 +108,8 @@ func main() {
 		_ = writer.Write(row)
 	}
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(1 * time.Second)
 
-	// logout
+	// Logout
 	page.MustElement("#main-page > div.headerwrap > div > div.uppernav.col-1-2 > span:nth-child(1) > a:nth-child(4)").MustClick()
 }
