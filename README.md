@@ -7,6 +7,10 @@ Untuk rate percobaan solver captcha kemungkinan berhasil: 20/2 dan mungkin bisa 
 
 
     git clone github.com/pramudya3/bri-scrape
+ 
+ Untuk menjalankan program :
+     
+    go run main.go -rod=show,slow=1s
     
   Referensi :
   
